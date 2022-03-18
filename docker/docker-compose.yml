@@ -1,0 +1,43 @@
+version: '3.4'
+
+services:
+
+  #PHP Service
+  app:
+    # image: learning-docker/laravel:v1
+    build: .
+    container_name: app_api
+    restart: unless-stopped
+    volumes:
+      - ../src:/var/www/html
+
+  #Nginx Service
+  webserver:
+    image: nginx:1.17-alpine
+    container_name: webserver_api
+    restart: unless-stopped
+    ports:
+      - "8000:80"
+    volumes:
+      - ../src:/var/www/html
+      - ./nginx.conf:/etc/nginx/conf.d/default.conf
+    depends_on:
+      - app
+      - db
+
+  db:
+    image: mysql:5.7.20
+    container_name: db_api
+    restart: unless-stopped
+    ports:
+      - 33061:3306
+    volumes:
+      - ./db:/var/lib/mysql
+    environment:
+      - "MYSQL_DATABASE=laravel_docker"
+      - "MYSQL_USER=hoanh"
+      - "MYSQL_PASSWORD=hoa1234"
+      - "MYSQL_ROOT_PASSWORD=hoa1234"
+
+volumes:
+  mysql_data:
