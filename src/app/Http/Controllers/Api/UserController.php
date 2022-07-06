@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Api;
 
+use App\Helpers\Utils;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Auth;
@@ -59,26 +60,32 @@ class UserController extends BaseController
      */
     public function login(LoginRequest $request)
     {
-        if (isset($request->validator) && $request->validator->fails()) {
-            return $this->responseError($request->validator->errors(), 400);
+        try {
+            Utils::createLogInfo('LOGING');
+            if (isset($request->validator) && $request->validator->fails()) {
+                return $this->responseError($request->validator->errors(), 400);
+            }
+
+            $credentials = [
+                'email' => $request->email,
+                'password' => $request->password
+            ];
+
+            // set custom lifetime
+            $token = $request->remember_me ? auth()->setTTL(1440) : auth();
+
+            // add custom claims to token
+            $token = $token->claims(['email' => $request->email])->attempt($credentials);
+
+            if (!$token) {
+                return $this->responseError(__('message.unauthorized'), 401);
+            }
+
+            return $this->responseSuccess(['token' => $token]);
+        } catch (\Exception $e) {
+            Utils::createLogError(__FILE__ . ': ' .  __LINE__ . ' ' . $e);
+            return $this->responseError(__('message.internal_server_error'), 500);
         }
-
-        $credentials = [
-            'email' => $request->email,
-            'password' => $request->password
-        ];
-
-        // set custom lifetime
-        $token = $request->remember_me ? auth()->setTTL(1440) : auth();
-
-        // add custom claims to token
-        $token = $token->claims(['email' => $request->email])->attempt($credentials);
-
-        if (!$token) {
-            return $this->responseError(__('message.unauthorized'), 401);
-        }
-
-        return $this->responseSuccess(['token' => $token]);
     }
 
     /**
